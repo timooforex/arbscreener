@@ -487,8 +487,12 @@ nav{
         <!-- BRANDING -->
         <div class="section-title">Header Logo</div>
         <div class="form-grid">
-          <div class="form-group"><label class="form-label">Logo Image URL</label>
-            <input class="form-control" id="s-logo-url" placeholder="https://... (paste image link)" oninput="previewLogoUrl(this.value)">
+          <div class="form-group"><label class="form-label">Logo Image</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="s-logo-file" accept="image/*" style="display:none" onchange="previewLogo(this)">
+              <button type="button" class="action-btn" onclick="document.getElementById('s-logo-file').click()">Upload Logo</button>
+              <button type="button" class="icon-btn del" id="s-logo-remove" onclick="removeLogo()" style="display:none">Remove</button>
+            </div>
             <img id="s-logo-preview" src="" alt="" style="display:none;max-height:52px;max-width:160px;margin-top:8px;border-radius:6px;object-fit:contain;background:var(--bg3);padding:4px;">
           </div>
           <div class="form-group"><label class="form-label">Logo Height (px)</label>
@@ -499,8 +503,12 @@ nav{
         <hr class="divider">
         <div class="section-title">Dashboard Flyer</div>
         <div class="form-grid">
-          <div class="form-group"><label class="form-label">Flyer Image URL</label>
-            <input class="form-control" id="s-flyer-url" placeholder="https://... (paste image link)" oninput="previewFlyerUrl(this.value)">
+          <div class="form-group"><label class="form-label">Flyer Image</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="s-flyer-file" accept="image/*" style="display:none" onchange="previewFlyer(this)">
+              <button type="button" class="action-btn" onclick="document.getElementById('s-flyer-file').click()">Upload Flyer</button>
+              <button type="button" class="icon-btn del" id="s-flyer-remove" onclick="removeFlyer()" style="display:none">Remove</button>
+            </div>
             <img id="s-flyer-preview" src="" alt="" style="display:none;max-height:80px;max-width:100%;margin-top:8px;border-radius:6px;object-fit:contain;background:var(--bg3);padding:4px;">
           </div>
           <div class="form-group"><label class="form-label">Max Width (%)</label>
@@ -727,16 +735,29 @@ function previewCustomAccent(color) {
   document.documentElement.style.setProperty('--accent', color);
 }
 
-function previewLogoUrl(url) {
-  const prev = document.getElementById('s-logo-preview');
-  if (url) { prev.src = url; prev.style.display = 'block'; }
-  else { prev.src = ''; prev.style.display = 'none'; }
+function previewImageInput(inputId, previewId, removeId) {
+  const input = document.getElementById(inputId);
+  if (!input?.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById(previewId);
+    prev.src = e.target.result; prev.style.display = 'block';
+    document.getElementById(removeId).style.display = '';
+  };
+  reader.readAsDataURL(input.files[0]);
 }
-function previewFlyerUrl(url) {
-  const prev = document.getElementById('s-flyer-preview');
-  if (url) { prev.src = url; prev.style.display = 'block'; }
-  else { prev.src = ''; prev.style.display = 'none'; }
+function removeImageInput(inputId, previewId, removeId) {
+  const input = document.getElementById(inputId);
+  input.value = '';
+  const prev = document.getElementById(previewId);
+  prev.src = ''; prev.style.display = 'none';
+  document.getElementById(removeId).style.display = 'none';
+  input.dataset.remove = '1';
 }
+function previewLogo(input) { previewImageInput('s-logo-file','s-logo-preview','s-logo-remove'); }
+function removeLogo()       { removeImageInput('s-logo-file','s-logo-preview','s-logo-remove'); }
+function previewFlyer(input){ previewImageInput('s-flyer-file','s-flyer-preview','s-flyer-remove'); }
+function removeFlyer()      { removeImageInput('s-flyer-file','s-flyer-preview','s-flyer-remove'); }
 
 function previewLogoSize(px) {
   const n = parseInt(px); if (n >= 20 && n <= 80) document.documentElement.style.setProperty('--logo-size', n + 'px');
@@ -1141,12 +1162,10 @@ async function loadAdminSettings(){
     const data=await api('/api/admin/settings');
     const s=data.settings||{};
     // Branding — logo
-    setField('s-logo-url', s.brandLogo);
-    if(s.brandLogo) previewLogoUrl(s.brandLogo);
+    if(s.brandLogo){ const p=document.getElementById('s-logo-preview'); p.src=s.brandLogo; p.style.display='block'; document.getElementById('s-logo-remove').style.display=''; }
     setField('s-logo-size', s.logoSize);
     // Branding — flyer
-    setField('s-flyer-url', s.flyerImage);
-    if(s.flyerImage) previewFlyerUrl(s.flyerImage);
+    if(s.flyerImage){ const p=document.getElementById('s-flyer-preview'); p.src=s.flyerImage; p.style.display='block'; document.getElementById('s-flyer-remove').style.display=''; }
     setField('s-flyer-width',  s.flyerMaxWidth);
     setField('s-flyer-height', s.flyerMaxHeight);
     // Hero text
@@ -1190,8 +1209,28 @@ async function loadAdminSettings(){
     applySettings(s);
   }catch(e){}
 }
+async function uploadImageFile(inputId, endpoint, fieldName) {
+  const fileInput = document.getElementById(inputId);
+  if (!fileInput) return undefined;
+  if (fileInput.dataset.remove === '1') { delete fileInput.dataset.remove; return ''; }
+  if (!fileInput.files?.[0]) return undefined;
+  const form = new FormData();
+  form.append(fieldName, fileInput.files[0]);
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const res = await fetch(endpoint, { method: 'POST', headers, body: form });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Upload failed');
+  fileInput.value = '';
+  return data.url;
+}
+
 async function saveSiteSettings(){
   try{
+    const [logoUrl, flyerUrl] = await Promise.all([
+      uploadImageFile('s-logo-file',  '/api/admin/upload-logo',  'logo'),
+      uploadImageFile('s-flyer-file', '/api/admin/upload-flyer', 'flyer'),
+    ]);
+
     const payload = {
       // Branding sizes
       logoSize:v('s-logo-size'),
@@ -1235,8 +1274,8 @@ async function saveSiteSettings(){
       marketCap:v('s-mcap'),
       volume:v('s-vol'),
     };
-    payload.brandLogo  = v('s-logo-url');
-    payload.flyerImage = v('s-flyer-url');
+    if (logoUrl  !== undefined) payload.brandLogo  = logoUrl;
+    if (flyerUrl !== undefined) payload.flyerImage = flyerUrl;
 
     await api('/api/admin/settings',{method:'PUT',body:JSON.stringify(payload)});
     // Re-fetch public settings and apply
