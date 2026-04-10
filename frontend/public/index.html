@@ -282,10 +282,24 @@ nav{
 .x-btn{background:#0f0f0f;color:#fff;border:1px solid #2a2a2a;}
 .x-btn:hover{border-color:#444;}
 
+.sidebar-close{display:none;position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:4px;}
+.sidebar-close:hover{color:var(--text);}
+.filter-mobile-btn{display:none;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font);}
+.filter-mobile-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199;}
 @media(max-width:900px){
   .stats-strip{grid-template-columns:1fr 1fr;}
   .top-section{grid-template-columns:1fr;}
-  .sidebar{display:none;}
+  .sidebar{
+    position:fixed;top:0;left:0;width:270px;height:100vh;
+    z-index:200;transform:translateX(-100%);
+    transition:transform .25s ease;display:block;
+    padding-top:52px;
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-close{display:block;}
+  .filter-mobile-btn{display:flex;}
+  .sidebar-backdrop.open{display:block;}
   .admin-drawer{width:100vw;}
   .hero-name{font-size:24px;}
   .hero-tagline{font-size:14px;}
@@ -354,8 +368,10 @@ nav{
     </div>
   </div>
 
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleFilters()"></div>
   <div class="main">
-    <div class="sidebar">
+    <div class="sidebar" id="main-sidebar">
+      <button class="sidebar-close" onclick="toggleFilters()">✕</button>
       <div style="margin-bottom:16px">
         <div class="sidebar-label">Buy At</div>
         <div class="filter-list" id="buy-list"></div>
@@ -397,6 +413,7 @@ nav{
       <div class="table-header">
         <div><div class="table-title" id="table-title-text">Live Arbitrage Trades</div><div class="table-sub" id="count-label">Loading...</div></div>
         <div class="table-actions">
+          <button class="filter-mobile-btn" onclick="toggleFilters()">⚙ Filters</button>
           <input class="search-input" type="text" placeholder="Search..." id="search-box" oninput="applyFilters()">
           <button class="action-btn" onclick="exportCSV()">↓ Export</button>
           <button class="action-btn" onclick="loadTrades()">↻ Refresh</button>
@@ -917,6 +934,12 @@ function applySettings(s) {
     if (!el) { el = document.createElement('style'); el.id = 'mobile-css'; document.head.appendChild(el); }
     el.textContent = css;
   })();
+}
+
+// ── MOBILE FILTER DRAWER ─────────────────────────────────────────────────
+function toggleFilters() {
+  document.getElementById('main-sidebar').classList.toggle('open');
+  document.getElementById('sidebar-backdrop').classList.toggle('open');
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
