@@ -15,7 +15,7 @@
   --font-size-base:14px;--font-weight-body:400;--font-weight-heading:700;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:var(--font-size-base);font-weight:var(--font-weight-body);min-height:100vh;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:var(--font-size-base);font-weight:var(--font-weight-body);min-height:100vh;overflow-x:hidden;}
 h1,h2,h3,.hero-name,.hero-tagline,.table-title,.section-title,.stat-card .sv,.admin-header h2{font-weight:var(--font-weight-heading);}
 
 /* NAV */
@@ -403,16 +403,18 @@ nav{
         </div>
       </div>
       <div id="table-loading" class="loading">Loading live arbitrage data...</div>
-      <table class="arb-table" id="main-table" style="display:none">
-        <thead><tr>
-          <th>#</th><th>Coin</th><th>Pair</th>
-          <th>Buy At</th><th>Buy Price</th>
-          <th>Sell At</th><th>Sell Price</th>
-          <th onclick="sortBy('profit')">Profit ↕</th>
-          <th>Deposits</th><th>Withdrawals</th>
-        </tr></thead>
-        <tbody id="table-body"></tbody>
-      </table>
+      <div style="overflow-x:auto;width:100%;">
+        <table class="arb-table" id="main-table" style="display:none">
+          <thead><tr>
+            <th>#</th><th>Coin</th><th>Pair</th>
+            <th>Buy At</th><th>Buy Price</th>
+            <th>Sell At</th><th>Sell Price</th>
+            <th onclick="sortBy('profit')">Profit ↕</th>
+            <th>Deposits</th><th>Withdrawals</th>
+          </tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
       <div class="pagination" id="pagination"></div>
     </div>
   </div>
