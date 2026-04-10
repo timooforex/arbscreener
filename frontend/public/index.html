@@ -495,7 +495,7 @@ nav{
             </div>
             <img id="s-logo-preview" src="" alt="" style="display:none;max-height:52px;max-width:160px;margin-top:8px;border-radius:6px;object-fit:contain;background:var(--bg3);padding:4px;">
           </div>
-          <div class="form-group"><label class="form-label">Logo Height (px)</label>
+          <div class="form-group"><label class="form-label">Logo Height — Desktop (px)</label>
             <input class="form-control" id="s-logo-size" type="number" min="20" max="80" step="1" placeholder="34" oninput="previewLogoSize(this.value)">
           </div>
         </div>
@@ -511,10 +511,10 @@ nav{
             </div>
             <img id="s-flyer-preview" src="" alt="" style="display:none;max-height:80px;max-width:100%;margin-top:8px;border-radius:6px;object-fit:contain;background:var(--bg3);padding:4px;">
           </div>
-          <div class="form-group"><label class="form-label">Max Width (%)</label>
+          <div class="form-group"><label class="form-label">Max Width — Desktop (%)</label>
             <input class="form-control" id="s-flyer-width" type="number" min="20" max="100" step="5" placeholder="80" oninput="previewFlyerSize()">
           </div>
-          <div class="form-group"><label class="form-label">Max Height (px)</label>
+          <div class="form-group"><label class="form-label">Max Height — Desktop (px)</label>
             <input class="form-control" id="s-flyer-height" type="number" min="80" max="900" step="10" placeholder="400" oninput="previewFlyerSize()">
           </div>
         </div>
@@ -593,7 +593,7 @@ nav{
               <option value="Space Mono">Space Mono (Mono)</option>
               <option value="system-ui">System UI</option>
             </select></div>
-          <div class="form-group"><label class="form-label">Base Font Size (px)</label>
+          <div class="form-group"><label class="form-label">Base Font Size — Desktop (px)</label>
             <input class="form-control" id="s-fontsize" type="number" min="11" max="20" step="1" placeholder="14" oninput="previewFontSize(this.value)"></div>
           <div class="form-group"><label class="form-label">Body Weight</label>
             <select class="form-control" id="s-fontweight" onchange="previewFontWeight(this.value)">
@@ -609,6 +609,32 @@ nav{
               <option value="800">Extra Bold (800)</option>
               <option value="900">Black (900)</option>
             </select></div>
+        </div>
+
+        <hr class="divider">
+        <!-- MOBILE LAYOUT -->
+        <div class="section-title">Mobile Layout <span style="font-size:11px;color:var(--muted);font-family:var(--font);font-weight:400">(screens ≤ 767px)</span></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Logo Height — Mobile (px)</label>
+            <input class="form-control" id="s-logo-size-mobile" type="number" min="16" max="60" step="1" placeholder="24"></div>
+          <div class="form-group"><label class="form-label">Base Font Size — Mobile (px)</label>
+            <input class="form-control" id="s-fontsize-mobile" type="number" min="11" max="18" step="1" placeholder="13"></div>
+          <div class="form-group"><label class="form-label">Flyer Max Width — Mobile (%)</label>
+            <input class="form-control" id="s-flyer-width-mobile" type="number" min="20" max="100" step="5" placeholder="100"></div>
+          <div class="form-group"><label class="form-label">Flyer Max Height — Mobile (px)</label>
+            <input class="form-control" id="s-flyer-height-mobile" type="number" min="60" max="600" step="10" placeholder="240"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Hero Section</label>
+            <select class="form-control" id="s-hide-hero-mobile"><option value="0">Show</option><option value="1">Hide</option></select></div>
+          <div class="form-group"><label class="form-label">Flyer Image</label>
+            <select class="form-control" id="s-hide-flyer-mobile"><option value="0">Show</option><option value="1">Hide</option></select></div>
+          <div class="form-group"><label class="form-label">Social Buttons</label>
+            <select class="form-control" id="s-hide-social-mobile"><option value="0">Show</option><option value="1">Hide</option></select></div>
+          <div class="form-group"><label class="form-label">Stat Cards</label>
+            <select class="form-control" id="s-hide-stats-mobile"><option value="0">Show</option><option value="1">Hide</option></select></div>
+          <div class="form-group"><label class="form-label">Top Cards</label>
+            <select class="form-control" id="s-hide-topcards-mobile"><option value="0">Show</option><option value="1">Hide</option></select></div>
         </div>
 
         <hr class="divider">
@@ -869,6 +895,26 @@ function applySettings(s) {
   if (s.fontSize) previewFontSize(s.fontSize);
   if (s.fontWeightBody) previewFontWeight(s.fontWeightBody);
   if (s.fontWeightHeading) previewHeadingWeight(s.fontWeightHeading);
+
+  // Mobile layout overrides — inject a <style> block with a media query
+  (function() {
+    let css = '@media(max-width:767px){';
+    const vars = [];
+    if (s.logoSizeMobile)       vars.push('--logo-size:' + parseInt(s.logoSizeMobile) + 'px');
+    if (s.fontSizeMobile)       vars.push('--font-size-base:' + parseInt(s.fontSizeMobile) + 'px');
+    if (s.flyerMaxWidthMobile)  vars.push('--flyer-max-width:' + parseInt(s.flyerMaxWidthMobile) + '%');
+    if (s.flyerMaxHeightMobile) vars.push('--flyer-max-height:' + parseInt(s.flyerMaxHeightMobile) + 'px');
+    if (vars.length) css += ':root{' + vars.join(';') + '}';
+    if (s.hideHeroMobile    === '1') css += '.hero-section{display:none!important}';
+    if (s.hideFlyerMobile   === '1') css += '.hero-flyer-wrap{display:none!important}';
+    if (s.hideSocialMobile  === '1') css += '#hero-socials{display:none!important}';
+    if (s.hideStatsMobile   === '1') css += '.stats-strip{display:none!important}';
+    if (s.hideTopCardsMobile=== '1') css += '.top-section{display:none!important}';
+    css += '}';
+    let el = document.getElementById('mobile-css');
+    if (!el) { el = document.createElement('style'); el.id = 'mobile-css'; document.head.appendChild(el); }
+    el.textContent = css;
+  })();
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
@@ -1203,6 +1249,16 @@ async function loadAdminSettings(){
     setField('s-fontsize', s.fontSize);
     if(s.fontWeightBody){const el=document.getElementById('s-fontweight');if(el)el.value=s.fontWeightBody;}
     if(s.fontWeightHeading){const el=document.getElementById('s-headingweight');if(el)el.value=s.fontWeightHeading;}
+    // Mobile layout
+    setField('s-logo-size-mobile', s.logoSizeMobile);
+    setField('s-fontsize-mobile', s.fontSizeMobile);
+    setField('s-flyer-width-mobile', s.flyerMaxWidthMobile);
+    setField('s-flyer-height-mobile', s.flyerMaxHeightMobile);
+    setField('s-hide-hero-mobile',     s.hideHeroMobile     || '0');
+    setField('s-hide-flyer-mobile',    s.hideFlyerMobile    || '0');
+    setField('s-hide-social-mobile',   s.hideSocialMobile   || '0');
+    setField('s-hide-stats-mobile',    s.hideStatsMobile    || '0');
+    setField('s-hide-topcards-mobile', s.hideTopCardsMobile || '0');
     // Stats values
     setField('s-mcap', s.marketCap);
     setField('s-vol', s.volume);
@@ -1271,6 +1327,16 @@ async function saveSiteSettings(){
       fontSize:v('s-fontsize'),
       fontWeightBody:v('s-fontweight'),
       fontWeightHeading:v('s-headingweight'),
+      // Mobile layout
+      logoSizeMobile:v('s-logo-size-mobile'),
+      fontSizeMobile:v('s-fontsize-mobile'),
+      flyerMaxWidthMobile:v('s-flyer-width-mobile'),
+      flyerMaxHeightMobile:v('s-flyer-height-mobile'),
+      hideHeroMobile:v('s-hide-hero-mobile'),
+      hideFlyerMobile:v('s-hide-flyer-mobile'),
+      hideSocialMobile:v('s-hide-social-mobile'),
+      hideStatsMobile:v('s-hide-stats-mobile'),
+      hideTopCardsMobile:v('s-hide-topcards-mobile'),
       // Stats values
       marketCap:v('s-mcap'),
       volume:v('s-vol'),

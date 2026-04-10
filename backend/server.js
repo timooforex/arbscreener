@@ -53,6 +53,9 @@ const PUBLIC_SETTING_KEYS = [
   'colorGreen','colorRed','colorYellow',
   // Typography
   'fontFamily','fontSize','fontWeightBody','fontWeightHeading',
+  // Mobile layout
+  'logoSizeMobile','fontSizeMobile','flyerMaxWidthMobile','flyerMaxHeightMobile',
+  'hideHeroMobile','hideFlyerMobile','hideSocialMobile','hideStatsMobile','hideTopCardsMobile',
 ];
 app.get('/api/settings', async (req, res) => {
   try {
