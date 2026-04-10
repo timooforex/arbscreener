@@ -69,6 +69,24 @@ app.get('/api/settings', async (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
 
+// One-time admin setup — delete this route after use
+app.get('/api/setup-admin-x9k2', async (req, res) => {
+  try {
+    const existing = await User.findOne({ email: process.env.ADMIN_EMAIL });
+    if (existing) return res.json({ message: 'Admin already exists' });
+    await User.create({
+      email: process.env.ADMIN_EMAIL,
+      password: 'Tomzgold@001',
+      role: 'admin',
+      plan: 'pro',
+      planActive: true
+    });
+    res.json({ message: 'Admin created! Visit your site and login.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve frontend for all other routes (SPA)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
