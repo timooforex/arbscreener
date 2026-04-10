@@ -1231,12 +1231,13 @@ async function saveSiteSettings(){
       uploadImageFile('s-flyer-file', '/api/admin/upload-flyer', 'flyer'),
     ]);
 
-    const payload = {
+    const raw = {
       // Branding sizes
       logoSize:v('s-logo-size'),
       flyerMaxWidth:v('s-flyer-width'),
       flyerMaxHeight:v('s-flyer-height'),
       // Hero text
+      heroEyebrow:v('s-eyebrow'),
       heroTagline:v('s-tagline'),
       welcomeMessage:v('s-welcome'),
       // Social
@@ -1274,8 +1275,10 @@ async function saveSiteSettings(){
       marketCap:v('s-mcap'),
       volume:v('s-vol'),
     };
-    if (logoUrl  !== undefined) payload.brandLogo  = logoUrl;
-    if (flyerUrl !== undefined) payload.flyerImage = flyerUrl;
+    if (logoUrl  !== undefined) raw.brandLogo  = logoUrl;
+    if (flyerUrl !== undefined) raw.flyerImage = flyerUrl;
+    // Only send keys that have a value — empty fields must not overwrite existing saved values
+    const payload = Object.fromEntries(Object.entries(raw).filter(([,val]) => val !== ''));
 
     await api('/api/admin/settings',{method:'PUT',body:JSON.stringify(payload)});
     // Re-fetch public settings and apply
