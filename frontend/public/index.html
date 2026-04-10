@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArbEdge — Live Arbitrage Screener</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#040905;--bg2:#071009;--bg3:#0a160b;--card:#0d1e0f;--border:#162b18;
+  --accent:#c9a227;--accent2:#1a6b35;
+  --green:#00c46a;--red:#e84040;--yellow:#f0b429;
+  --text:#dff0e0;--muted:#4a6e52;
+  --font-mono:'Space Mono',monospace;--font:'DM Sans',sans-serif;
+  --font-size-base:14px;--font-weight-body:400;--font-weight-heading:700;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:var(--font-size-base);font-weight:var(--font-weight-body);min-height:100vh;}
+h1,h2,h3,.hero-name,.hero-tagline,.table-title,.section-title,.stat-card .sv,.admin-header h2{font-weight:var(--font-weight-heading);}
+
+/* NAV */
+nav{
+  background:rgba(7,16,9,.96);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);padding:0 28px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;
+}
+.logo{cursor:pointer;display:flex;align-items:center;user-select:none;}
+.logo-diamond{width:30px;height:30px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent) 0%,#7a5a00 100%);
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);}
+.nav-logo-img{height:var(--logo-size,34px);width:auto;max-width:140px;object-fit:contain;border-radius:5px;display:none;}
+.nav-right{display:flex;gap:6px;align-items:center;}
+.nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:6px 14px;
+  border-radius:6px;font-size:12px;font-family:var(--font);transition:all .2s;}
+.nav-btn:hover,.nav-btn.active{background:var(--card);color:var(--text);}
+.live-badge{display:flex;align-items:center;gap:7px;
+  background:rgba(0,196,106,.07);border:1px solid rgba(0,196,106,.18);
+  color:var(--green);border-radius:20px;padding:5px 13px;
+  font-size:10px;font-family:var(--font-mono);letter-spacing:.5px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+/* PAGES */
+.page{display:none;}.page.active{display:block;}
+
+/* AUTH PAGE */
+.auth-wrap{min-height:calc(100vh - 58px);display:flex;align-items:center;justify-content:center;
+  padding:20px;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(26,107,53,.18),transparent);}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:38px;width:100%;max-width:400px;
+  box-shadow:0 24px 80px rgba(0,0,0,.6),0 0 0 1px rgba(201,162,39,.06);}
+.auth-card h2{font-size:18px;font-family:var(--font-mono);color:var(--accent);margin-bottom:6px;letter-spacing:.3px;}
+.auth-card p{color:var(--muted);font-size:13px;margin-bottom:26px;}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.form-label{font-size:10px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;}
+.form-control{background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:11px 13px;border-radius:8px;font-size:13px;font-family:var(--font);outline:none;transition:border .2s;}
+.form-control:focus{border-color:rgba(201,162,39,.45);}
+.submit-btn{width:100%;background:linear-gradient(135deg,#c9a227 0%,#8a6a0a 100%);
+  color:#000;border:none;padding:13px;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:opacity .2s;margin-top:6px;letter-spacing:.3px;}
+.submit-btn:hover{opacity:.86;}
+.submit-btn:disabled{opacity:.45;cursor:not-allowed;}
+.auth-err{color:var(--red);font-size:12px;margin-top:8px;min-height:18px;}
+
+/* SCREENER LAYOUT */
+#page-screener.active{display:flex;flex-direction:column;}
+.main{display:flex;flex:1;}
+.sidebar{width:232px;min-width:232px;background:var(--bg2);border-right:1px solid var(--border);
+  padding:16px 14px;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;align-self:flex-start;}
+.content{flex:1;padding:20px 24px;min-width:0;}
+.sidebar-label{font-size:9px;font-family:var(--font-mono);color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sidebar-label::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent);}
+.filter-list{display:flex;flex-direction:column;gap:2px;max-height:180px;overflow-y:auto;}
+.filter-list::-webkit-scrollbar{width:2px;}
+.filter-list::-webkit-scrollbar-thumb{background:var(--border);}
+.exchange-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;cursor:pointer;transition:background .12s;}
+.exchange-item:hover{background:var(--card);}
+.exchange-item input{accent-color:var(--accent);cursor:pointer;width:13px;height:13px;}
+.exchange-item label{cursor:pointer;font-size:12px;color:var(--muted);}
+.exchange-item:has(input:checked) label{color:var(--text);}
+.filter-actions{display:flex;gap:6px;margin-top:8px;}
+.filter-btn{flex:1;padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;font-family:var(--font);}
+.filter-btn:hover{color:var(--text);}
+.filter-btn.primary{background:rgba(201,162,39,.1);color:var(--accent);border-color:rgba(201,162,39,.25);}
+.range-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.range-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px;font-family:var(--font-mono);outline:none;}
+.range-input:focus{border-color:rgba(201,162,39,.4);}
+.range-label{font-size:11px;color:var(--muted);width:26px;text-align:right;}
+
+/* STATS */
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 17px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.35),transparent);}
+.stat-card .sl{font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+.stat-card .sv{font-size:21px;font-weight:700;font-family:var(--font-mono);}
+.sv.green{color:var(--green);}
+.sv.accent{color:var(--accent);}
+
+/* TOP SECTION */
+.top-section{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.top-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.top-card h3{font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:2px;text-transform:uppercase;margin-bottom:13px;display:flex;align-items:center;gap:7px;}
+.top-card h3::before{content:'';width:3px;height:11px;background:var(--accent);border-radius:2px;flex-shrink:0;}
+.top-trade-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(22,43,24,.9);}
+.top-trade-item:last-child{border-bottom:none;}
+.tt-coin{display:flex;align-items:center;gap:9px;}
+.coin-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;font-family:var(--font-mono);}
+.tt-pct{font-family:var(--font-mono);font-size:13px;font-weight:700;}
+.tt-pct.high{color:var(--green);}
+.tt-pct.low{color:var(--yellow);}
+
+/* TABLE */
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;}
+.table-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;}
+.table-sub{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--font-mono);}
+.table-actions{display:flex;gap:8px;align-items:center;}
+.action-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-family:var(--font);transition:all .15s;}
+.action-btn:hover{border-color:rgba(201,162,39,.35);color:var(--accent);}
+.search-input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:7px 12px 7px 32px;border-radius:7px;font-size:12px;font-family:var(--font);outline:none;width:180px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234a6e52' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;}
+.search-input:focus{border-color:rgba(201,162,39,.35);}
+.search-input::placeholder{color:var(--muted);}
+.arb-table{width:100%;border-collapse:collapse;}
+.arb-table thead{position:sticky;top:0;background:var(--bg);z-index:2;}
+.arb-table thead tr{border-bottom:2px solid var(--border);}
+.arb-table th{text-align:left;padding:10px 12px;font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
+.arb-table th:hover{color:var(--accent);}
+.arb-table tbody tr{border-bottom:1px solid rgba(22,43,24,.5);transition:background .1s;cursor:pointer;}
+.arb-table tbody tr:nth-child(even){background:rgba(13,30,15,.5);}
+.arb-table tbody tr:hover{background:rgba(201,162,39,.04)!important;}
+.arb-table td{padding:10px 12px;font-size:12.5px;white-space:nowrap;}
+.coin-cell{display:flex;align-items:center;gap:8px;}
+.pair-cell{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+.exchange-cell{display:flex;flex-direction:column;}
+.exch-name{font-weight:600;font-size:12.5px;}
+.exch-price{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:2px;}
+.profit-cell{font-family:var(--font-mono);font-weight:700;font-size:13px;}
+.profit-cell.high{color:var(--green);}
+.profit-cell.medium{color:var(--yellow);}
+.profit-cell.low{color:var(--muted);}
+.profit-bar-wrap{width:48px;height:2px;background:rgba(22,43,24,.8);border-radius:2px;margin-top:4px;}
+.profit-bar{height:2px;border-radius:2px;}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:5px;}
+.status-dot.ok{background:var(--green);}
+.status-dot.warn{background:var(--yellow);}
+.status-dot.bad{background:var(--red);}
+.locked-cell{color:var(--muted);font-size:11px;}
+.upgrade-badge{display:none;}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:5px;margin-top:16px;justify-content:flex-end;}
+.page-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.page-btn:hover,.page-btn.active{border-color:rgba(201,162,39,.4);color:var(--accent);background:rgba(201,162,39,.08);}
+.page-info{font-size:12px;color:var(--muted);margin:0 5px;}
+
+/* ADMIN PANEL */
+#admin-panel{display:none;position:fixed;inset:0;background:#000a;z-index:200;
+  align-items:flex-start;justify-content:flex-end;}
+#admin-panel.open{display:flex;}
+.admin-drawer{width:740px;max-width:100vw;height:100vh;background:var(--bg2);
+  border-left:1px solid var(--border);display:flex;flex-direction:column;animation:slideIn .25s ease;}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
+.admin-header{padding:16px 22px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;background:var(--bg3);}
+.admin-header h2{font-size:14px;font-family:var(--font-mono);color:var(--accent2);}
+.admin-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;}
+.admin-close:hover{color:var(--text);}
+.admin-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg3);}
+.admin-tab{padding:11px 18px;cursor:pointer;font-size:12px;color:var(--muted);
+  border-bottom:2px solid transparent;transition:all .15s;background:none;
+  border-top:none;border-left:none;border-right:none;font-family:var(--font);}
+.admin-tab:hover{color:var(--text);}
+.admin-tab.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+.admin-body{flex:1;overflow-y:auto;padding:18px 22px;}
+.admin-section{display:none;}.admin-section.active{display:block;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.section-title{font-size:13px;font-weight:600;margin-bottom:12px;}
+.add-btn{background:var(--green)22;color:var(--green);border:1px solid var(--green)44;
+  padding:9px 18px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;
+  font-family:var(--font);transition:opacity .15s;margin-top:4px;}
+.add-btn:hover{opacity:.85;}
+.danger-btn{background:var(--red)22;color:var(--red);border:1px solid var(--red)44;
+  padding:9px 18px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;
+  font-family:var(--font);}
+.admin-list{margin-top:18px;}
+.admin-list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.admin-list-title{font-size:11px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;}
+.admin-item{display:flex;align-items:center;gap:9px;padding:9px 11px;
+  background:var(--bg);border:1px solid var(--border);border-radius:7px;margin-bottom:5px;}
+.admin-item-main{flex:1;}
+.admin-item-name{font-size:13px;font-weight:500;}
+.admin-item-meta{font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--font-mono);}
+.item-actions{display:flex;gap:5px;}
+.icon-btn{background:none;border:1px solid var(--border);color:var(--muted);
+  padding:4px 8px;border-radius:5px;cursor:pointer;font-size:11px;transition:all .15s;}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+.icon-btn.del:hover{border-color:var(--red);color:var(--red);}
+.badge{padding:2px 7px;border-radius:20px;font-size:10px;font-family:var(--font-mono);}
+.badge.on{background:var(--green)22;color:var(--green);border:1px solid var(--green)33;}
+.badge.off{background:var(--red)22;color:var(--red);border:1px solid var(--red)33;}
+.badge.starter{background:#0ea5e922;color:#0ea5e9;border:1px solid #0ea5e933;}
+.badge.pro{background:var(--accent2)22;color:var(--accent2);border:1px solid var(--accent2)33;}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0;border-bottom:1px solid var(--border)66;}
+.settings-row:last-child{border-bottom:none;}
+.si-label{font-size:13px;font-weight:500;}
+.si-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+.toggle-switch{position:relative;width:40px;height:22px;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:22px;transition:.2s;}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;
+  background:var(--muted);bottom:3px;left:3px;transition:.2s;}
+.toggle-switch input:checked+.toggle-slider{background:var(--accent2)66;}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(18px);background:var(--accent2);}
+
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;z-index:999;background:var(--card);
+  border:1px solid var(--green)44;color:var(--green);padding:11px 18px;border-radius:8px;
+  font-size:13px;display:none;animation:fadeUp .25s ease;box-shadow:0 4px 24px #0008;}
+#toast.error{border-color:var(--red)44;color:var(--red);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* PLAN INFO BAR */
+.plan-bar{background:var(--accent2)15;border-bottom:1px solid var(--accent2)33;
+  padding:8px 24px;display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.plan-bar.hidden{display:none;}
+.plan-bar-info{color:var(--accent2);}
+.plan-bar-action{color:var(--accent2);cursor:pointer;font-weight:600;text-decoration:underline;}
+
+.empty-state{text-align:center;padding:36px;color:var(--muted);font-size:13px;}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* SCREENER PAGE — natural scroll, sticky sidebar */
+
+/* HERO SECTION */
+.hero-section{
+  position:relative;overflow:hidden;flex-shrink:0;
+  background:linear-gradient(180deg,#071209 0%,#040905 100%);
+  border-bottom:1px solid var(--border);padding:52px 24px 40px;text-align:center;}
+.hero-section::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%,rgba(201,162,39,.13),transparent),
+    radial-gradient(ellipse 50% 40% at 20% 120%,rgba(26,107,53,.1),transparent),
+    radial-gradient(ellipse 50% 40% at 80% 120%,rgba(26,107,53,.08),transparent);}
+.hero-grid{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(201,162,39,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(201,162,39,.04) 1px,transparent 1px);
+  background-size:48px 48px;mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,black 30%,transparent 100%);}
+.hero-inner{max-width:680px;margin:0 auto;position:relative;z-index:1;}
+.hero-brand{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px;}
+.hero-logo-img{height:54px;width:auto;object-fit:contain;border-radius:8px;}
+.hero-flyer-wrap{margin-bottom:24px;display:flex;justify-content:center;}
+.hero-flyer-img{display:block;width:100%;max-width:var(--flyer-max-width,80%);max-height:var(--flyer-max-height,400px);height:auto;object-fit:contain;border-radius:14px;box-shadow:0 16px 60px rgba(0,0,0,.5);}
+.hero-eyebrow{font-family:var(--font-mono);font-size:10px;color:var(--accent2);letter-spacing:3px;
+  text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:10px;}
+.hero-eyebrow::before,.hero-eyebrow::after{content:'';display:inline-block;width:32px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent2));}
+.hero-eyebrow::after{background:linear-gradient(90deg,var(--accent2),transparent);}
+.hero-name{font-family:var(--font-mono);font-size:34px;color:var(--accent);letter-spacing:-1.5px;
+  margin-bottom:4px;line-height:1.1;}
+.hero-name span{color:var(--text);}
+.hero-tagline{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px;
+  margin-bottom:16px;line-height:1.5;max-width:520px;margin-left:auto;margin-right:auto;}
+.hero-tagline em{color:var(--accent);font-style:normal;}
+.hero-welcome{color:var(--muted);font-size:13.5px;line-height:1.75;margin-bottom:28px;
+  max-width:480px;margin-left:auto;margin-right:auto;}
+.hero-divider{width:48px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  margin:0 auto 24px;}
+.hero-socials{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.social-btn{display:flex;align-items:center;gap:8px;padding:10px 24px;border-radius:8px;
+  font-size:13px;font-weight:600;text-decoration:none;transition:all .2s;font-family:var(--font);
+  letter-spacing:.2px;}
+.social-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.4);}
+.tg-btn{background:linear-gradient(135deg,#229ED9,#1a7ea8);color:#fff;}
+.x-btn{background:#0f0f0f;color:#fff;border:1px solid #2a2a2a;}
+.x-btn:hover{border-color:#444;}
+
+@media(max-width:900px){
+  .stats-strip{grid-template-columns:1fr 1fr;}
+  .top-section{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .admin-drawer{width:100vw;}
+  .hero-name{font-size:24px;}
+  .hero-tagline{font-size:14px;}
+  .hero-section{padding:36px 20px 28px;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" id="nav-logo" onclick="logoClick()">
+    <img id="nav-logo-img" class="nav-logo-img" src="" alt="Logo">
+    <div class="logo-diamond" id="nav-logo-diamond"></div>
+  </div>
+  <div class="nav-right">
+    <div class="live-badge" id="live-badge"><div class="live-dot"></div><span id="live-badge-text">LIVE</span></div>
+    <button class="nav-btn active" id="nav-screener" onclick="showPage('screener')"><span id="nav-btn-text">Screener</span></button>
+    <div id="nav-auth-area"></div>
+  </div>
+</nav>
+
+<!-- AUTH PAGE (admin login only) -->
+<div class="page" id="page-auth">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <h2>Admin Login</h2>
+      <p>Sign in with your admin credentials</p>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-control" type="email" id="login-email" placeholder="you@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-control" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="submit-btn" onclick="doLogin()" id="login-btn">Sign In</button>
+      <div class="auth-err" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREENER PAGE -->
+<div class="page" id="page-screener">
+
+  <!-- HERO / BRANDING -->
+  <div class="hero-section" id="hero-section">
+    <div class="hero-grid"></div>
+    <div class="hero-inner">
+      <div class="hero-eyebrow" id="hero-eyebrow">Real-Time Arbitrage Intelligence</div>
+      <div class="hero-flyer-wrap" id="hero-flyer-wrap" style="display:none">
+        <img id="hero-flyer-img" class="hero-flyer-img" src="" alt="">
+      </div>
+      <div class="hero-tagline" id="hero-tagline">The Edge Traders Use to <em>Profit Every Single Day.</em></div>
+      <div class="hero-divider"></div>
+      <p class="hero-welcome" id="hero-welcome">We scan 15+ top exchanges every 30 seconds and surface the highest-yield price gaps — so you can act before the market closes them. No noise. No paywalls. Pure alpha.</p>
+      <div class="hero-socials" id="hero-socials">
+        <a id="social-tg" class="social-btn tg-btn" href="#" target="_blank" rel="noopener" style="display:none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          <span id="tg-btn-text">Join Telegram</span>
+        </a>
+        <a id="social-x" class="social-btn x-btn" href="#" target="_blank" rel="noopener" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span id="x-btn-text">Follow on X</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div style="margin-bottom:16px">
+        <div class="sidebar-label">Buy At</div>
+        <div class="filter-list" id="buy-list"></div>
+        <div class="filter-actions">
+          <button class="filter-btn" onclick="selectAll('buy',false)">Clear</button>
+          <button class="filter-btn primary" onclick="selectAll('buy',true)">All</button>
+        </div>
+      </div>
+      <hr class="divider">
+      <div style="margin-bottom:16px">
+        <div class="sidebar-label">Sell At</div>
+        <div class="filter-list" id="sell-list"></div>
+        <div class="filter-actions">
+          <button class="filter-btn" onclick="selectAll('sell',false)">Clear</button>
+          <button class="filter-btn primary" onclick="selectAll('sell',true)">All</button>
+        </div>
+      </div>
+      <hr class="divider">
+      <div>
+        <div class="sidebar-label">Profit Range (%)</div>
+        <div class="range-row"><span class="range-label">Min</span>
+          <input class="range-input" type="number" id="min-profit" value="1" onchange="applyFilters()"></div>
+        <div class="range-row"><span class="range-label">Max</span>
+          <input class="range-input" type="number" id="max-profit" value="999" onchange="applyFilters()"></div>
+      </div>
+      <button class="filter-btn primary" style="width:100%;margin-top:8px" onclick="applyFilters()">Apply Filters</button>
+    </div>
+    <div class="content">
+      <div class="stats-strip">
+        <div class="stat-card"><div class="sl" id="stat-label-mcap">Market Cap</div><div class="sv" id="stat-mcap">—</div></div>
+        <div class="stat-card"><div class="sl" id="stat-label-vol">24h Volume</div><div class="sv" id="stat-vol">—</div></div>
+        <div class="stat-card"><div class="sl" id="stat-label-trades">Total Trades</div><div class="sv accent" id="stat-trades">—</div></div>
+        <div class="stat-card"><div class="sl" id="stat-label-top">Top Profit</div><div class="sv green" id="stat-top">—</div></div>
+      </div>
+      <div class="top-section">
+        <div class="top-card"><h3 id="top-card1-title">Top 3 Opportunities</h3><div id="top3-list"></div></div>
+        <div class="top-card"><h3 id="top-card2-title">Lowest Profit Trades</h3><div id="bot3-list"></div></div>
+      </div>
+      <div class="table-header">
+        <div><div class="table-title" id="table-title-text">Live Arbitrage Trades</div><div class="table-sub" id="count-label">Loading...</div></div>
+        <div class="table-actions">
+          <input class="search-input" type="text" placeholder="Search..." id="search-box" oninput="applyFilters()">
+          <button class="action-btn" onclick="exportCSV()">↓ Export</button>
+          <button class="action-btn" onclick="loadTrades()">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="table-loading" class="loading">Loading live arbitrage data...</div>
+      <table class="arb-table" id="main-table" style="display:none">
+        <thead><tr>
+          <th>#</th><th>Coin</th><th>Pair</th>
+          <th>Buy At</th><th>Buy Price</th>
+          <th>Sell At</th><th>Sell Price</th>
+          <th onclick="sortBy('profit')">Profit ↕</th>
+          <th>Deposits</th><th>Withdrawals</th>
+        </tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <div style="flex:1;height:100vh" onclick="closeAdmin()"></div>
+  <div class="admin-drawer">
+    <div class="admin-header">
+      <h2>⚙ Admin Panel</h2>
+      <button class="admin-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="adminTab('exchanges')">Exchanges</button>
+      <button class="admin-tab" onclick="adminTab('trades')">Trades</button>
+      <button class="admin-tab" onclick="adminTab('users')">Users</button>
+      <button class="admin-tab" onclick="adminTab('settings')">Settings</button>
+    </div>
+    <div class="admin-body">
+
+      <!-- EXCHANGES -->
+      <div class="admin-section active" id="tab-exchanges">
+        <div class="section-title">Add Exchange</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Name</label><input class="form-control" id="ex-name" placeholder="Exchange name"></div>
+          <div class="form-group"><label class="form-label">Website</label><input class="form-control" id="ex-url" placeholder="https://..."></div>
+          <div class="form-group"><label class="form-label">Country</label><input class="form-control" id="ex-country" placeholder="Global"></div>
+          <div class="form-group"><label class="form-label">Type</label>
+            <select class="form-control" id="ex-type"><option>CEX</option><option>DEX</option><option>Hybrid</option></select></div>
+          <div class="form-group"><label class="form-label">Maker Fee %</label><input class="form-control" id="ex-maker" type="number" step="0.01" placeholder="0.1"></div>
+          <div class="form-group"><label class="form-label">Taker Fee %</label><input class="form-control" id="ex-taker" type="number" step="0.01" placeholder="0.1"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Notes</label><input class="form-control" id="ex-notes" placeholder="Optional"></div>
+        <button class="add-btn" onclick="addExchange()">+ Add Exchange</button>
+        <div class="admin-list">
+          <div class="admin-list-header">
+            <span class="admin-list-title">All Exchanges (<span id="ex-count">0</span>)</span>
+            <input class="search-input" style="width:150px;font-size:11px" placeholder="Search..." id="ex-search" oninput="renderExchangeList()">
+          </div>
+          <div id="exchange-list"></div>
+        </div>
+      </div>
+
+      <!-- TRADES -->
+      <div class="admin-section" id="tab-trades">
+        <div class="section-title">Add Manual Trade</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Coin</label><input class="form-control" id="tr-coin" placeholder="BTC"></div>
+          <div class="form-group"><label class="form-label">Pair</label><input class="form-control" id="tr-pair" placeholder="BTC/USDT"></div>
+          <div class="form-group"><label class="form-label">Buy Exchange</label><select class="form-control" id="tr-buy"></select></div>
+          <div class="form-group"><label class="form-label">Buy Price</label><input class="form-control" id="tr-buyprice" type="number" step="any" placeholder="30000"></div>
+          <div class="form-group"><label class="form-label">Sell Exchange</label><select class="form-control" id="tr-sell"></select></div>
+          <div class="form-group"><label class="form-label">Sell Price</label><input class="form-control" id="tr-sellprice" type="number" step="any" placeholder="31500"></div>
+          <div class="form-group"><label class="form-label">Deposit Status</label>
+            <select class="form-control" id="tr-dep"><option value="ok">Open ✓</option><option value="warn">Slow ⚠</option><option value="bad">Closed ✗</option></select></div>
+          <div class="form-group"><label class="form-label">Withdrawal Status</label>
+            <select class="form-control" id="tr-wd"><option value="ok">Open ✓</option><option value="warn">Slow ⚠</option><option value="bad">Closed ✗</option></select></div>
+        </div>
+        <button class="add-btn" onclick="addTrade()">+ Add Trade</button>
+        <div class="admin-list">
+          <div class="admin-list-header">
+            <span class="admin-list-title">All Trades (<span id="tr-count">0</span>)</span>
+            <input class="search-input" style="width:150px;font-size:11px" placeholder="Search..." id="tr-search" oninput="renderTradeList()">
+          </div>
+          <div id="trade-list"></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="admin-section" id="tab-users">
+        <div class="section-title">User Management</div>
+        <div id="users-list"><div class="loading">Loading...</div></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="admin-section" id="tab-settings">
+
+        <!-- BRANDING -->
+        <div class="section-title">Header Logo</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Logo Image</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="s-logo-file" accept="image/*" style="display:none" onchange="previewLogo(this)">
+              <button type="button" class="action-btn" onclick="document.getElementById('s-logo-file').click()">Upload Logo</button>
+              <button type="button" class="icon-btn del" id="s-logo-remove" onclick="removeLogo()" style="display:none">Remove</button>
+            </div>
+            <img id="s-logo-preview" src="" alt="" style="display:none;max-height:52px;max-width:160px;margin-top:8px;border-radius:6px;object-fit:contain;background:var(--bg3);padding:4px;">
+          </div>
+          <div class="form-group"><label class="form-label">Logo Height (px)</label>
+            <input class="form-control" id="s-logo-size" type="number" min="20" max="80" step="1" placeholder="34" oninput="previewLogoSize(this.value)">
+          </div>
+        </div>
+
+        <hr class="divider">
+        <div class="section-title">Dashboard Flyer</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Flyer Image</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="s-flyer-file" accept="image/*" style="display:none" onchange="previewFlyer(this)">
+              <button type="button" class="action-btn" onclick="document.getElementById('s-flyer-file').click()">Upload Flyer</button>
+              <button type="button" class="icon-btn del" id="s-flyer-remove" onclick="removeFlyer()" style="display:none">Remove</button>
+            </div>
+            <img id="s-flyer-preview" src="" alt="" style="display:none;max-height:80px;max-width:100%;margin-top:8px;border-radius:6px;object-fit:contain;background:var(--bg3);padding:4px;">
+          </div>
+          <div class="form-group"><label class="form-label">Max Width (%)</label>
+            <input class="form-control" id="s-flyer-width" type="number" min="20" max="100" step="5" placeholder="80" oninput="previewFlyerSize()">
+          </div>
+          <div class="form-group"><label class="form-label">Max Height (px)</label>
+            <input class="form-control" id="s-flyer-height" type="number" min="80" max="900" step="10" placeholder="400" oninput="previewFlyerSize()">
+          </div>
+        </div>
+
+        <hr class="divider">
+        <div class="section-title">Hero Text</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Eyebrow Label</label><input class="form-control" id="s-eyebrow" placeholder="Real-Time Arbitrage Intelligence"></div>
+          <div class="form-group"><label class="form-label">Tagline</label><input class="form-control" id="s-tagline" placeholder="The Edge Traders Use to Profit Every Single Day."></div>
+        </div>
+        <div class="form-group"><label class="form-label">Welcome / Description</label><textarea class="form-control" id="s-welcome" rows="3" placeholder="We scan 15+ top exchanges every 30 seconds..." style="resize:vertical;"></textarea></div>
+
+        <hr class="divider">
+        <!-- SOCIAL LINKS -->
+        <div class="section-title">Social Links</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Telegram URL</label><input class="form-control" id="s-tg" placeholder="https://t.me/yourchannel"></div>
+          <div class="form-group"><label class="form-label">Telegram Button Label</label><input class="form-control" id="s-tg-label" placeholder="Join Telegram"></div>
+          <div class="form-group"><label class="form-label">X / Twitter URL</label><input class="form-control" id="s-x" placeholder="https://x.com/yourhandle"></div>
+          <div class="form-group"><label class="form-label">X Button Label</label><input class="form-control" id="s-x-label" placeholder="Follow on X"></div>
+        </div>
+
+        <hr class="divider">
+        <!-- PAGE LABELS -->
+        <div class="section-title">Page Labels</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Nav Button Text</label><input class="form-control" id="s-nav-btn" placeholder="Screener"></div>
+          <div class="form-group"><label class="form-label">Live Badge Text</label><input class="form-control" id="s-live-badge" placeholder="LIVE"></div>
+          <div class="form-group"><label class="form-label">Stat: Market Cap Label</label><input class="form-control" id="s-lbl-mcap" placeholder="Market Cap"></div>
+          <div class="form-group"><label class="form-label">Stat: Volume Label</label><input class="form-control" id="s-lbl-vol" placeholder="24h Volume"></div>
+          <div class="form-group"><label class="form-label">Stat: Trades Label</label><input class="form-control" id="s-lbl-trades" placeholder="Total Trades"></div>
+          <div class="form-group"><label class="form-label">Stat: Top Profit Label</label><input class="form-control" id="s-lbl-top" placeholder="Top Profit"></div>
+          <div class="form-group"><label class="form-label">Top Card 1 Title</label><input class="form-control" id="s-card1-title" placeholder="Top 3 Opportunities"></div>
+          <div class="form-group"><label class="form-label">Top Card 2 Title</label><input class="form-control" id="s-card2-title" placeholder="Lowest Profit Trades"></div>
+          <div class="form-group" style="grid-column:1/-1"><label class="form-label">Table Title</label><input class="form-control" id="s-table-title" placeholder="Live Arbitrage Trades"></div>
+        </div>
+
+        <hr class="divider">
+        <!-- THEME COLORS -->
+        <div class="section-title">Theme Colors</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Accent (Gold)</label>
+            <input class="form-control" id="s-accent" type="color" value="#c9a227" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--accent',this.value)"></div>
+          <div class="form-group"><label class="form-label">Accent 2 (Green)</label>
+            <input class="form-control" id="s-accent2" type="color" value="#1a6b35" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--accent2',this.value)"></div>
+          <div class="form-group"><label class="form-label">Background</label>
+            <input class="form-control" id="s-color-bg" type="color" value="#040905" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--bg',this.value)"></div>
+          <div class="form-group"><label class="form-label">Card Background</label>
+            <input class="form-control" id="s-color-card" type="color" value="#0d1e0f" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--card',this.value)"></div>
+          <div class="form-group"><label class="form-label">Border Color</label>
+            <input class="form-control" id="s-color-border" type="color" value="#162b18" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--border',this.value)"></div>
+          <div class="form-group"><label class="form-label">Text Color</label>
+            <input class="form-control" id="s-color-text" type="color" value="#dff0e0" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--text',this.value)"></div>
+          <div class="form-group"><label class="form-label">Muted Text</label>
+            <input class="form-control" id="s-color-muted" type="color" value="#4a6e52" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--muted',this.value)"></div>
+          <div class="form-group"><label class="form-label">Profit / Green</label>
+            <input class="form-control" id="s-color-green" type="color" value="#00c46a" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--green',this.value)"></div>
+          <div class="form-group"><label class="form-label">Loss / Red</label>
+            <input class="form-control" id="s-color-red" type="color" value="#e84040" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--red',this.value)"></div>
+          <div class="form-group"><label class="form-label">Warning / Yellow</label>
+            <input class="form-control" id="s-color-yellow" type="color" value="#f0b429" style="height:38px;padding:4px 6px;cursor:pointer" oninput="previewColor('--yellow',this.value)"></div>
+        </div>
+
+        <hr class="divider">
+        <!-- TYPOGRAPHY -->
+        <div class="section-title">Typography</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Font Family</label>
+            <select class="form-control" id="s-font" onchange="previewFont(this.value)">
+              <option value="DM Sans">DM Sans (Default)</option>
+              <option value="Inter">Inter</option>
+              <option value="Poppins">Poppins</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Nunito">Nunito</option>
+              <option value="Lato">Lato</option>
+              <option value="Space Mono">Space Mono (Mono)</option>
+              <option value="system-ui">System UI</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Base Font Size (px)</label>
+            <input class="form-control" id="s-fontsize" type="number" min="11" max="20" step="1" placeholder="14" oninput="previewFontSize(this.value)"></div>
+          <div class="form-group"><label class="form-label">Body Weight</label>
+            <select class="form-control" id="s-fontweight" onchange="previewFontWeight(this.value)">
+              <option value="300">Light (300)</option>
+              <option value="400" selected>Regular (400)</option>
+              <option value="500">Medium (500)</option>
+              <option value="600">Semi-Bold (600)</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Heading Weight</label>
+            <select class="form-control" id="s-headingweight" onchange="previewHeadingWeight(this.value)">
+              <option value="600">Semi-Bold (600)</option>
+              <option value="700" selected>Bold (700)</option>
+              <option value="800">Extra Bold (800)</option>
+              <option value="900">Black (900)</option>
+            </select></div>
+        </div>
+
+        <hr class="divider">
+        <!-- STATS VALUES -->
+        <div class="section-title">Stats Values</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Market Cap Value</label><input class="form-control" id="s-mcap" placeholder="$2.23T"></div>
+          <div class="form-group"><label class="form-label">24h Volume Value</label><input class="form-control" id="s-vol" placeholder="$72.3B"></div>
+        </div>
+
+        <button class="add-btn" style="width:100%;margin-top:4px" onclick="saveSiteSettings()">Save All Settings</button>
+        <hr class="divider">
+        <div class="section-title" style="color:var(--red)">Danger Zone</div>
+        <div style="display:flex;gap:10px">
+          <button class="danger-btn" onclick="clearLiveTrades()">Clear Live Trades</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const API = ''; // empty = same origin (backend serves frontend)
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let token = localStorage.getItem('arb_token');
+let currentUser = null;
+let allTrades = [], filteredTrades = [], allExchanges = [];
+let selectedBuy = new Set(), selectedSell = new Set();
+let sortCol = 'profit', sortDir = -1, currentPage = 1, pageSize = 25;
+let adminExchanges = [], adminTrades = [];
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+const COLORS = ['#00e5ff','#7c3aed','#00e676','#ffd600','#ff6d00','#e040fb','#ff1744','#00b0ff'];
+function coinColor(sym){let h=0;for(let c of sym)h=(h*31+c.charCodeAt(0))%COLORS.length;return COLORS[h];}
+function fmt(n){if(!n&&n!==0)return'—';if(n<0.0001)return n.toExponential(4);if(n<1)return n.toPrecision(5);if(n>=1000)return n.toLocaleString(undefined,{maximumFractionDigits:2});return+n.toPrecision(6)+'';}
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className=type;el.style.display='block';setTimeout(()=>{el.style.display='none';},3000);}
+function profitClass(p){return p>=10?'high':p>=3?'medium':'low';}
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(API + path, { ...opts, headers: { ...headers, ...opts.headers } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  err.textContent = '';
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    const data = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: v('login-email'), password: v('login-pass') })
+    });
+    token = data.token;
+    localStorage.setItem('arb_token', token);
+    currentUser = data.user;
+    onLogin();
+  } catch (e) { err.textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Sign In'; }
+}
+
+// ── SECRET ADMIN LOGIN — click logo 7 times within 2s ─────────────────────
+let _logoClicks = 0, _logoTimer = null;
+function logoClick() {
+  goHome();
+  _logoClicks++;
+  clearTimeout(_logoTimer);
+  _logoTimer = setTimeout(() => { _logoClicks = 0; }, 2000);
+  if (_logoClicks >= 7) { _logoClicks = 0; showPage('auth'); }
+}
+
+function onLogin() {
+  renderNavAuth();
+  showPage('screener');
+}
+
+function doLogout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('arb_token');
+  renderNavAuth();
+  showPage('screener');
+}
+
+function renderNavAuth() {
+  const area = document.getElementById('nav-auth-area');
+  if (currentUser?.isAdmin) {
+    area.innerHTML = `
+      <span style="font-size:12px;color:var(--muted);margin-right:4px">${currentUser.email}</span>
+      <button class="nav-btn" onclick="doLogout()">Sign Out</button>
+      <button class="nav-btn" style="color:var(--accent2)" onclick="openAdmin()">⚙ Admin</button>`;
+  } else {
+    area.innerHTML = '';
+  }
+}
+
+// ── THEME ──────────────────────────────────────────────────────────────────
+const THEMES = {
+  cyan:   { accent:'#00e5ff', accent2:'#7c3aed' },
+  purple: { accent:'#a855f7', accent2:'#ec4899' },
+  green:  { accent:'#00e676', accent2:'#00bcd4' },
+  gold:   { accent:'#ffd600', accent2:'#ff6d00' },
+  blue:   { accent:'#2196f3', accent2:'#7c3aed' },
+};
+
+function applyTheme(accent, accent2) {
+  document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--accent2', accent2);
+}
+function previewColor(varName, value) {
+  document.documentElement.style.setProperty(varName, value);
+}
+function previewCustomAccent(color) {
+  document.documentElement.style.setProperty('--accent', color);
+}
+
+function previewImageInput(inputId, previewId, removeId) {
+  const input = document.getElementById(inputId);
+  if (!input?.files?.[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById(previewId);
+    prev.src = e.target.result; prev.style.display = 'block';
+    document.getElementById(removeId).style.display = '';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function removeImageInput(inputId, previewId, removeId) {
+  const input = document.getElementById(inputId);
+  input.value = '';
+  const prev = document.getElementById(previewId);
+  prev.src = ''; prev.style.display = 'none';
+  document.getElementById(removeId).style.display = 'none';
+  input.dataset.remove = '1';
+}
+function previewLogo(input) { previewImageInput('s-logo-file','s-logo-preview','s-logo-remove'); }
+function removeLogo()       { removeImageInput('s-logo-file','s-logo-preview','s-logo-remove'); }
+function previewFlyer(input){ previewImageInput('s-flyer-file','s-flyer-preview','s-flyer-remove'); }
+function removeFlyer()      { removeImageInput('s-flyer-file','s-flyer-preview','s-flyer-remove'); }
+
+function previewLogoSize(px) {
+  const n = parseInt(px); if (n >= 20 && n <= 80) document.documentElement.style.setProperty('--logo-size', n + 'px');
+}
+function previewFlyerSize() {
+  const w = parseInt(document.getElementById('s-flyer-width')?.value);
+  const h = parseInt(document.getElementById('s-flyer-height')?.value);
+  if (w >= 20 && w <= 100) document.documentElement.style.setProperty('--flyer-max-width', w + '%');
+  if (h >= 80 && h <= 900) document.documentElement.style.setProperty('--flyer-max-height', h + 'px');
+}
+
+// ── FONT HELPERS ──────────────────────────────────────────────────────────
+const GFONTS_LOADED = new Set(['DM Sans','Space Mono']);
+function loadGoogleFont(family) {
+  if (!family || family === 'system-ui' || GFONTS_LOADED.has(family)) return;
+  GFONTS_LOADED.add(family);
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@300;400;500;600;700;800;900&display=swap`;
+  document.head.appendChild(link);
+}
+function applyFont(family) {
+  if (!family) return;
+  loadGoogleFont(family);
+  const val = family === 'system-ui' ? 'system-ui,sans-serif' : `'${family}',sans-serif`;
+  document.documentElement.style.setProperty('--font', val);
+}
+function previewFont(family) { applyFont(family); }
+function previewFontSize(px) {
+  const n = parseInt(px); if (n >= 11 && n <= 20) document.documentElement.style.setProperty('--font-size-base', n + 'px');
+}
+function previewFontWeight(w) { document.documentElement.style.setProperty('--font-weight-body', w); }
+function previewHeadingWeight(w) { document.documentElement.style.setProperty('--font-weight-heading', w); }
+
+// ── APPLY SETTINGS TO PAGE ─────────────────────────────────────────────────
+function setText(id, val) { const el = document.getElementById(id); if (el && val) el.textContent = val; }
+function setHtml(id, val) { const el = document.getElementById(id); if (el && val) el.innerHTML = val; }
+function applySettings(s) {
+  // Document title (silent, not displayed)
+  if (s.siteName) document.title = s.siteName;
+
+  // Nav logo image + size
+  const navImg = document.getElementById('nav-logo-img');
+  const navDiamond = document.getElementById('nav-logo-diamond');
+  if (navImg) {
+    if (s.brandLogo) { navImg.src = s.brandLogo; navImg.style.display = 'block'; if (navDiamond) navDiamond.style.display = 'none'; }
+    else { navImg.style.display = 'none'; if (navDiamond) navDiamond.style.display = ''; }
+  }
+  if (s.logoSize) previewLogoSize(s.logoSize);
+
+  // Hero flyer image + size
+  const flyerWrap = document.getElementById('hero-flyer-wrap');
+  const flyerImg  = document.getElementById('hero-flyer-img');
+  if (flyerImg) {
+    if (s.flyerImage) { flyerImg.src = s.flyerImage; flyerWrap.style.display = 'flex'; }
+    else flyerWrap.style.display = 'none';
+  }
+  if (s.flyerMaxWidth || s.flyerMaxHeight) {
+    const w = parseInt(s.flyerMaxWidth); const h = parseInt(s.flyerMaxHeight);
+    if (w) document.documentElement.style.setProperty('--flyer-max-width', w + '%');
+    if (h) document.documentElement.style.setProperty('--flyer-max-height', h + 'px');
+  }
+
+  // Hero text
+  setText('hero-eyebrow', s.heroEyebrow);
+  setText('hero-tagline', s.heroTagline);
+  setText('hero-welcome', s.welcomeMessage);
+
+  // Social
+  const tgEl = document.getElementById('social-tg');
+  if (tgEl) { if (s.telegramUrl) { tgEl.href = s.telegramUrl; tgEl.style.display = 'flex'; } else tgEl.style.display = 'none'; }
+  setText('tg-btn-text', s.tgBtnLabel);
+  const xEl = document.getElementById('social-x');
+  if (xEl) { if (s.twitterUrl) { xEl.href = s.twitterUrl; xEl.style.display = 'flex'; } else xEl.style.display = 'none'; }
+  setText('x-btn-text', s.xBtnLabel);
+
+  // Nav labels
+  setText('nav-btn-text', s.navBtnText);
+  setText('live-badge-text', s.liveBadgeText);
+
+  // Stat labels
+  setText('stat-label-mcap', s.statLabelMcap);
+  setText('stat-label-vol', s.statLabelVol);
+  setText('stat-label-trades', s.statLabelTrades);
+  setText('stat-label-top', s.statLabelTop);
+
+  // Card / table labels
+  setText('top-card1-title', s.topCard1Title);
+  setText('top-card2-title', s.topCard2Title);
+  setText('table-title-text', s.tableTitle);
+
+  // Stats values
+  if (s.marketCap) setText('stat-mcap', s.marketCap);
+  if (s.volume) setText('stat-vol', s.volume);
+
+  // Colors
+  if (s.themeAccent) applyTheme(s.themeAccent, s.themeAccent2 || '#1a6b35');
+  if (s.colorBg) previewColor('--bg', s.colorBg);
+  if (s.colorCard) previewColor('--card', s.colorCard);
+  if (s.colorBorder) previewColor('--border', s.colorBorder);
+  if (s.colorText) previewColor('--text', s.colorText);
+  if (s.colorMuted) previewColor('--muted', s.colorMuted);
+  if (s.colorGreen) previewColor('--green', s.colorGreen);
+  if (s.colorRed) previewColor('--red', s.colorRed);
+  if (s.colorYellow) previewColor('--yellow', s.colorYellow);
+
+  // Typography
+  if (s.fontFamily) applyFont(s.fontFamily);
+  if (s.fontSize) previewFontSize(s.fontSize);
+  if (s.fontWeightBody) previewFontWeight(s.fontWeightBody);
+  if (s.fontWeightHeading) previewHeadingWeight(s.fontWeightHeading);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-btn[id^="nav-"]').forEach(b => b.classList.remove('active'));
+  const navBtn = document.getElementById('nav-' + page);
+  if (navBtn) navBtn.classList.add('active');
+}
+function goHome() { showPage('screener'); }
+
+// ── EXCHANGES ─────────────────────────────────────────────────────────────
+async function loadExchanges() {
+  try {
+    const data = await api('/api/exchanges');
+    allExchanges = data.exchanges || [];
+    selectedBuy = new Set(allExchanges.map(e => e.name));
+    selectedSell = new Set(allExchanges.map(e => e.name));
+    renderSidebar();
+  } catch (e) { console.error('Failed to load exchanges:', e.message); }
+}
+
+function renderSidebar() {
+  ['buy','sell'].forEach(side => {
+    const el = document.getElementById(side + '-list');
+    const set = side === 'buy' ? selectedBuy : selectedSell;
+    el.innerHTML = allExchanges.map(e => `
+      <div class="exchange-item">
+        <input type="checkbox" id="${side}-${e.name}" ${set.has(e.name)?'checked':''}
+          onchange="toggleExchange('${side}','${e.name}',this.checked)">
+        <label for="${side}-${e.name}">${e.name}</label>
+      </div>`).join('');
+  });
+}
+
+function toggleExchange(side, name, val) {
+  const set = side === 'buy' ? selectedBuy : selectedSell;
+  val ? set.add(name) : set.delete(name);
+  applyFilters();
+}
+function selectAll(side, val) {
+  const set = side === 'buy' ? selectedBuy : selectedSell;
+  set.clear();
+  if (val) allExchanges.forEach(e => set.add(e.name));
+  renderSidebar(); applyFilters();
+}
+
+// ── TRADES ────────────────────────────────────────────────────────────────
+async function loadTrades() {
+  document.getElementById('table-loading').style.display = 'block';
+  document.getElementById('main-table').style.display = 'none';
+  try {
+    const data = await api('/api/trades');
+    allTrades = data.trades || [];
+    applyFilters();
+    document.getElementById('table-loading').style.display = 'none';
+    document.getElementById('main-table').style.display = 'table';
+  } catch (e) {
+    document.getElementById('table-loading').textContent = 'Failed to load trades. ' + e.message;
+  }
+}
+
+function applyFilters() {
+  const q = (document.getElementById('search-box')?.value || '').toLowerCase();
+  const minP = parseFloat(document.getElementById('min-profit')?.value) || 0;
+  const maxP = parseFloat(document.getElementById('max-profit')?.value) || 9999;
+  filteredTrades = allTrades.filter(t => {
+    if (t.profit < minP || t.profit > maxP) return false;
+    if (t.buyAt && !selectedBuy.has(t.buyAt)) return false;
+    if (t.sellAt && !selectedSell.has(t.sellAt)) return false;
+    if (q && !t.coin?.toLowerCase().includes(q) && !t.pair?.toLowerCase().includes(q) &&
+        !t.buyAt?.toLowerCase().includes(q) && !t.sellAt?.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  filteredTrades.sort((a, b) => sortDir * (a[sortCol] > b[sortCol] ? 1 : -1));
+  currentPage = 1;
+  renderTable();
+  renderStats();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = -1; }
+  applyFilters();
+}
+
+function renderTable() {
+  const start = (currentPage - 1) * pageSize;
+  const page = filteredTrades.slice(start, start + pageSize);
+  const tbody = document.getElementById('table-body');
+  const topProfit = filteredTrades[0]?.profit || 1;
+
+  tbody.innerHTML = page.map((t, i) => {
+    const rank = start + i + 1;
+    const pct = profitClass(t.profit);
+    const barW = Math.round((t.profit / topProfit) * 100);
+
+    const buyCell = `<td><div class="exchange-cell"><span class="exch-name">${t.buyAt||'—'}</span><span class="exch-price">${fmt(t.buyPrice)}</span></div></td>
+         <td class="pair-cell">${fmt(t.buyPrice)}</td>
+         <td><div class="exchange-cell"><span class="exch-name">${t.sellAt||'—'}</span><span class="exch-price">${fmt(t.sellPrice)}</span></div></td>
+         <td class="pair-cell">${fmt(t.sellPrice)}</td>`;
+
+    const statusCells = `<td><span class="status-dot ${t.depositStatus||'ok'}"></span>${t.depositStatus==='ok'?'Open':t.depositStatus==='warn'?'Slow':'Closed'}</td>
+         <td><span class="status-dot ${t.wdStatus||'ok'}"></span>${t.wdStatus==='ok'?'Open':t.wdStatus==='warn'?'Slow':'Closed'}</td>`;
+
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px">${rank}</td>
+      <td><div class="coin-cell">
+        <div class="coin-icon" style="background:${coinColor(t.coin||'?')}22;color:${coinColor(t.coin||'?')}">${(t.coin||'?').slice(0,2)}</div>
+        <span style="font-weight:600">${t.coin||'?'}</span>
+      </div></td>
+      <td class="pair-cell">${t.pair||'—'}</td>
+      ${buyCell}
+      <td>
+        <div class="profit-cell ${pct}">${t.profit?.toFixed(2)}%</div>
+        <div class="profit-bar-wrap"><div class="profit-bar" style="width:${barW}%;background:${pct==='high'?'var(--green)':pct==='medium'?'var(--yellow)':'var(--muted)'}"></div></div>
+      </td>
+      ${statusCells}
+    </tr>`;
+  }).join('') || `<tr><td colspan="10" class="empty-state">No trades match your filters</td></tr>`;
+
+  document.getElementById('count-label').textContent = `Showing ${filteredTrades.length} arbitrage trades`;
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredTrades.length / pageSize);
+  const pg = document.getElementById('pagination');
+  if (total <= 1) { pg.innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for (let p = 1; p <= total; p++) {
+    if (p===1||p===total||Math.abs(p-currentPage)<=1)
+      html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    else if (Math.abs(p-currentPage)===2) html += `<span class="page-info">…</span>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+  pg.innerHTML = html;
+}
+function goPage(p) {
+  const total = Math.ceil(filteredTrades.length / pageSize);
+  currentPage = Math.max(1, Math.min(p, total));
+  renderTable();
+}
+
+function renderStats() {
+  document.getElementById('stat-trades').textContent = filteredTrades.length;
+  document.getElementById('stat-top').textContent = filteredTrades.length ? filteredTrades[0].profit.toFixed(2)+'%' : '—';
+  const t3 = filteredTrades.slice(0,3);
+  const b3 = [...filteredTrades].sort((a,b)=>a.profit-b.profit).slice(0,3);
+  document.getElementById('top3-list').innerHTML = t3.map(t=>`
+    <div class="top-trade-item">
+      <div class="tt-coin"><div class="coin-icon" style="background:${coinColor(t.coin||'?')}22;color:${coinColor(t.coin||'?')}">${(t.coin||'?').slice(0,2)}</div>
+      <span style="font-weight:600;font-size:12px">${t.pair}</span></div>
+      <span class="tt-pct high">${t.profit.toFixed(2)}%</span>
+    </div>`).join('') || '<div class="empty-state">—</div>';
+  document.getElementById('bot3-list').innerHTML = b3.map(t=>`
+    <div class="top-trade-item">
+      <div class="tt-coin"><div class="coin-icon" style="background:${coinColor(t.coin||'?')}22;color:${coinColor(t.coin||'?')}">${(t.coin||'?').slice(0,2)}</div>
+      <span style="font-weight:600;font-size:12px">${t.pair}</span></div>
+      <span class="tt-pct low">${t.profit.toFixed(2)}%</span>
+    </div>`).join('') || '<div class="empty-state">—</div>';
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────
+async function openAdmin() {
+  document.getElementById('admin-panel').classList.add('open');
+  await loadAdminExchanges();
+  await loadAdminSettings();
+}
+function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
+
+function adminTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab==='users') loadAdminUsers();
+  if (tab==='trades') loadAdminTrades();
+}
+
+async function loadAdminExchanges() {
+  try {
+    const data = await api('/api/exchanges/admin');
+    adminExchanges = data.exchanges || [];
+    renderExchangeList();
+    populateExchangeDropdowns();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function addExchange() {
+  try {
+    await api('/api/exchanges', { method:'POST', body:JSON.stringify({
+      name:v('ex-name'), url:v('ex-url'), country:v('ex-country')||'Global',
+      type:v('ex-type'), makerFee:+v('ex-maker')||0, takerFee:+v('ex-taker')||0, notes:v('ex-notes')
+    })});
+    toast('Exchange added!');
+    ['ex-name','ex-url','ex-country','ex-notes'].forEach(id=>{document.getElementById(id).value='';});
+    await loadAdminExchanges(); await loadExchanges();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function renderExchangeList() {
+  const q = (document.getElementById('ex-search')?.value||'').toLowerCase();
+  const list = adminExchanges.filter(e=>!q||e.name.toLowerCase().includes(q));
+  document.getElementById('ex-count').textContent = adminExchanges.length;
+  document.getElementById('exchange-list').innerHTML = list.map(e=>`
+    <div class="admin-item">
+      <div class="admin-item-main">
+        <div class="admin-item-name">${e.name} <span class="badge ${e.isActive?'on':'off'}">${e.isActive?'Active':'Hidden'}</span>
+          ${e.isLive?'<span class="badge on" style="margin-left:4px">LIVE API</span>':''}</div>
+        <div class="admin-item-meta">${e.type} · ${e.country} · M:${e.makerFee}% T:${e.takerFee}%</div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" onclick="toggleExchangeActive('${e._id}',${!e.isActive})">${e.isActive?'Hide':'Show'}</button>
+        <button class="icon-btn del" onclick="deleteExchange('${e._id}')">Del</button>
+      </div>
+    </div>`).join('')||'<div class="empty-state">No exchanges</div>';
+}
+
+async function toggleExchangeActive(id, val) {
+  try { await api(`/api/exchanges/${id}`,{method:'PUT',body:JSON.stringify({isActive:val})}); await loadAdminExchanges(); await loadExchanges(); }
+  catch(e){toast(e.message,'error');}
+}
+async function deleteExchange(id) {
+  if(!confirm('Delete exchange?'))return;
+  try{await api(`/api/exchanges/${id}`,{method:'DELETE'});toast('Deleted');await loadAdminExchanges();await loadExchanges();}
+  catch(e){toast(e.message,'error');}
+}
+function populateExchangeDropdowns() {
+  ['tr-buy','tr-sell'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    const cur=el.value;
+    el.innerHTML=adminExchanges.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+    if(cur)el.value=cur;
+  });
+}
+
+async function loadAdminTrades() {
+  try{
+    const data=await api('/api/trades/admin');
+    adminTrades=data.trades||[];
+    renderTradeList();
+  }catch(e){toast(e.message,'error');}
+}
+async function addTrade() {
+  const coin=v('tr-coin').toUpperCase(),pair=v('tr-pair'),buyAt=v('tr-buy'),
+    buyPrice=parseFloat(v('tr-buyprice')),sellAt=v('tr-sell'),sellPrice=parseFloat(v('tr-sellprice'));
+  if(!coin||!pair||isNaN(buyPrice)||isNaN(sellPrice)){toast('Fill all fields','error');return;}
+  try{
+    await api('/api/trades',{method:'POST',body:JSON.stringify({
+      coin,pair,buyAt,buyPrice,sellAt,sellPrice,
+      depositStatus:v('tr-dep'),wdStatus:v('tr-wd')
+    })});
+    toast('Trade added!');
+    await loadAdminTrades(); await loadTrades();
+  }catch(e){toast(e.message,'error');}
+}
+function renderTradeList(){
+  const q=(document.getElementById('tr-search')?.value||'').toLowerCase();
+  const list=adminTrades.filter(t=>!q||t.coin?.toLowerCase().includes(q)||t.buyAt?.toLowerCase().includes(q));
+  document.getElementById('tr-count').textContent=adminTrades.length;
+  document.getElementById('trade-list').innerHTML=list.map(t=>`
+    <div class="admin-item">
+      <div class="admin-item-main">
+        <div class="admin-item-name">${t.coin} — ${t.pair}
+          <span class="badge ${t.profit>=5?'on':''}" style="${t.profit<5?'background:var(--yellow)22;color:var(--yellow);border:1px solid var(--yellow)33':''}">
+            ${t.profit?.toFixed(2)}%</span>
+          ${t.isManual?'<span class="badge starter">MANUAL</span>':''}
+          <span class="badge ${t.isActive?'on':'off'}">${t.isActive?'Active':'Hidden'}</span>
+        </div>
+        <div class="admin-item-meta">Buy ${t.buyAt||'—'} @ ${fmt(t.buyPrice)} → Sell ${t.sellAt||'—'} @ ${fmt(t.sellPrice)}</div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" onclick="toggleTradeActive('${t._id}',${!t.isActive})">${t.isActive?'Hide':'Show'}</button>
+        <button class="icon-btn del" onclick="deleteTrade('${t._id}')">Del</button>
+      </div>
+    </div>`).join('')||'<div class="empty-state">No trades</div>';
+}
+async function toggleTradeActive(id,val){
+  try{await api(`/api/trades/${id}`,{method:'PUT',body:JSON.stringify({isActive:val})});await loadAdminTrades();await loadTrades();}
+  catch(e){toast(e.message,'error');}
+}
+async function deleteTrade(id){
+  if(!confirm('Delete trade?'))return;
+  try{await api(`/api/trades/${id}`,{method:'DELETE'});toast('Deleted');await loadAdminTrades();await loadTrades();}
+  catch(e){toast(e.message,'error');}
+}
+
+async function loadAdminUsers(){
+  try{
+    const data=await api('/api/admin/users');
+    document.getElementById('users-list').innerHTML=data.users.map(u=>`
+      <div class="admin-item">
+        <div class="admin-item-main">
+          <div class="admin-item-name">${u.email}
+            <span class="badge ${u.role==='admin'?'pro':u.plan==='pro'?'pro':u.plan==='starter'?'starter':'off'}">${u.role==='admin'?'ADMIN':u.plan.toUpperCase()}</span>
+            <span class="badge ${u.isActive?'on':'off'}">${u.isActive?'Active':'Banned'}</span>
+          </div>
+          <div class="admin-item-meta">${u.username||'—'} · Joined ${new Date(u.createdAt).toLocaleDateString()}
+            ${u.planExpiry?'· Expires '+new Date(u.planExpiry).toLocaleDateString():''}</div>
+        </div>
+        <div class="item-actions">
+          <select onchange="changeUserPlan('${u._id}',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:5px;font-size:11px;">
+            <option value="free" ${u.plan==='free'?'selected':''}>Free</option>
+            <option value="starter" ${u.plan==='starter'?'selected':''}>Starter</option>
+            <option value="pro" ${u.plan==='pro'?'selected':''}>Pro</option>
+          </select>
+          <button class="icon-btn" onclick="toggleUserActive('${u._id}',${!u.isActive})">${u.isActive?'Ban':'Unban'}</button>
+          <button class="icon-btn del" onclick="deleteUser('${u._id}')">Del</button>
+        </div>
+      </div>`).join('')||'<div class="empty-state">No users</div>';
+  }catch(e){toast(e.message,'error');}
+}
+async function changeUserPlan(id,plan){
+  const expiry=new Date(Date.now()+30*86400000);
+  try{await api(`/api/admin/users/${id}`,{method:'PUT',body:JSON.stringify({plan,planExpiry:expiry,role:plan==='pro'?'pro':plan==='starter'?'starter':'free'})});
+    toast('Plan updated');await loadAdminUsers();}
+  catch(e){toast(e.message,'error');}
+}
+async function toggleUserActive(id,val){
+  try{await api(`/api/admin/users/${id}`,{method:'PUT',body:JSON.stringify({isActive:val})});toast('Updated');await loadAdminUsers();}
+  catch(e){toast(e.message,'error');}
+}
+async function deleteUser(id){
+  if(!confirm('Delete user?'))return;
+  try{await api(`/api/admin/users/${id}`,{method:'DELETE'});toast('Deleted');await loadAdminUsers();}
+  catch(e){toast(e.message,'error');}
+}
+
+function setField(id, val) { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; }
+async function loadAdminSettings(){
+  try{
+    const data=await api('/api/admin/settings');
+    const s=data.settings||{};
+    // Branding — logo
+    if(s.brandLogo){ const p=document.getElementById('s-logo-preview'); p.src=s.brandLogo; p.style.display='block'; document.getElementById('s-logo-remove').style.display=''; }
+    setField('s-logo-size', s.logoSize);
+    // Branding — flyer
+    if(s.flyerImage){ const p=document.getElementById('s-flyer-preview'); p.src=s.flyerImage; p.style.display='block'; document.getElementById('s-flyer-remove').style.display=''; }
+    setField('s-flyer-width',  s.flyerMaxWidth);
+    setField('s-flyer-height', s.flyerMaxHeight);
+    // Hero text
+    setField('s-eyebrow', s.heroEyebrow);
+    setField('s-tagline', s.heroTagline);
+    setField('s-welcome', s.welcomeMessage);
+    // Social
+    setField('s-tg', s.telegramUrl);
+    setField('s-tg-label', s.tgBtnLabel);
+    setField('s-x', s.twitterUrl);
+    setField('s-x-label', s.xBtnLabel);
+    // Page labels
+    setField('s-nav-btn', s.navBtnText);
+    setField('s-live-badge', s.liveBadgeText);
+    setField('s-lbl-mcap', s.statLabelMcap);
+    setField('s-lbl-vol', s.statLabelVol);
+    setField('s-lbl-trades', s.statLabelTrades);
+    setField('s-lbl-top', s.statLabelTop);
+    setField('s-card1-title', s.topCard1Title);
+    setField('s-card2-title', s.topCard2Title);
+    setField('s-table-title', s.tableTitle);
+    // Colors
+    setField('s-accent', s.themeAccent);
+    setField('s-accent2', s.themeAccent2);
+    setField('s-color-bg', s.colorBg);
+    setField('s-color-card', s.colorCard);
+    setField('s-color-border', s.colorBorder);
+    setField('s-color-text', s.colorText);
+    setField('s-color-muted', s.colorMuted);
+    setField('s-color-green', s.colorGreen);
+    setField('s-color-red', s.colorRed);
+    setField('s-color-yellow', s.colorYellow);
+    // Typography
+    if(s.fontFamily){const el=document.getElementById('s-font');if(el)el.value=s.fontFamily;}
+    setField('s-fontsize', s.fontSize);
+    if(s.fontWeightBody){const el=document.getElementById('s-fontweight');if(el)el.value=s.fontWeightBody;}
+    if(s.fontWeightHeading){const el=document.getElementById('s-headingweight');if(el)el.value=s.fontWeightHeading;}
+    // Stats values
+    setField('s-mcap', s.marketCap);
+    setField('s-vol', s.volume);
+    applySettings(s);
+  }catch(e){}
+}
+async function uploadImageFile(inputId, endpoint, fieldName) {
+  const fileInput = document.getElementById(inputId);
+  if (!fileInput) return undefined;
+  if (fileInput.dataset.remove === '1') { delete fileInput.dataset.remove; return ''; }
+  if (!fileInput.files?.[0]) return undefined;
+  const form = new FormData();
+  form.append(fieldName, fileInput.files[0]);
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const res = await fetch(endpoint, { method: 'POST', headers, body: form });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Upload failed');
+  fileInput.value = '';
+  return data.url;
+}
+
+async function saveSiteSettings(){
+  try{
+    const [logoUrl, flyerUrl] = await Promise.all([
+      uploadImageFile('s-logo-file',  '/api/admin/upload-logo',  'logo'),
+      uploadImageFile('s-flyer-file', '/api/admin/upload-flyer', 'flyer'),
+    ]);
+
+    const payload = {
+      // Branding sizes
+      logoSize:v('s-logo-size'),
+      flyerMaxWidth:v('s-flyer-width'),
+      flyerMaxHeight:v('s-flyer-height'),
+      // Hero text
+      heroTagline:v('s-tagline'),
+      welcomeMessage:v('s-welcome'),
+      // Social
+      telegramUrl:v('s-tg'),
+      tgBtnLabel:v('s-tg-label'),
+      twitterUrl:v('s-x'),
+      xBtnLabel:v('s-x-label'),
+      // Page labels
+      navBtnText:v('s-nav-btn'),
+      liveBadgeText:v('s-live-badge'),
+      statLabelMcap:v('s-lbl-mcap'),
+      statLabelVol:v('s-lbl-vol'),
+      statLabelTrades:v('s-lbl-trades'),
+      statLabelTop:v('s-lbl-top'),
+      topCard1Title:v('s-card1-title'),
+      topCard2Title:v('s-card2-title'),
+      tableTitle:v('s-table-title'),
+      // Colors
+      themeAccent:v('s-accent'),
+      themeAccent2:v('s-accent2'),
+      colorBg:v('s-color-bg'),
+      colorCard:v('s-color-card'),
+      colorBorder:v('s-color-border'),
+      colorText:v('s-color-text'),
+      colorMuted:v('s-color-muted'),
+      colorGreen:v('s-color-green'),
+      colorRed:v('s-color-red'),
+      colorYellow:v('s-color-yellow'),
+      // Typography
+      fontFamily:v('s-font'),
+      fontSize:v('s-fontsize'),
+      fontWeightBody:v('s-fontweight'),
+      fontWeightHeading:v('s-headingweight'),
+      // Stats values
+      marketCap:v('s-mcap'),
+      volume:v('s-vol'),
+    };
+    if (logoUrl  !== undefined) payload.brandLogo  = logoUrl;
+    if (flyerUrl !== undefined) payload.flyerImage = flyerUrl;
+
+    await api('/api/admin/settings',{method:'PUT',body:JSON.stringify(payload)});
+    // Re-fetch public settings and apply
+    const data=await api('/api/settings');
+    applySettings(data.settings||{});
+    toast('Settings saved!');
+  }catch(e){toast(e.message,'error');}
+}
+async function clearLiveTrades(){
+  if(!confirm('Clear all live (auto-fetched) trades?'))return;
+  try{
+    // Delete non-manual trades via bulk delete
+    const data=await api('/api/trades/admin');
+    const ids=data.trades.filter(t=>!t.isManual).map(t=>t._id);
+    await Promise.all(ids.map(id=>api(`/api/trades/${id}`,{method:'DELETE'})));
+    toast('Live trades cleared');await loadAdminTrades();await loadTrades();
+  }catch(e){toast(e.message,'error');}
+}
+
+function exportCSV(){
+  const rows=[['Rank','Coin','Pair','Buy Exchange','Buy Price','Sell Exchange','Sell Price','Profit %']];
+  filteredTrades.forEach((t,i)=>{
+    rows.push([i+1,t.coin,t.pair,t.buyAt||'Hidden',t.buyPrice||'',t.sellAt||'Hidden',t.sellPrice||'',t.profit+'%']);
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download='arb-trades.csv';a.click();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init() {
+  // Restore admin session if token exists
+  if (token) {
+    try {
+      const data = await api('/api/auth/me');
+      currentUser = data;
+    } catch {
+      token = null;
+      localStorage.removeItem('arb_token');
+    }
+  }
+  renderNavAuth();
+  showPage('screener');
+  // Load public settings (branding, theme, social links)
+  try {
+    const data = await api('/api/settings');
+    applySettings(data.settings || {});
+  } catch {}
+  await Promise.all([loadExchanges(), loadTrades()]);
+}
+
+init();
+// Auto-refresh trades every 35 seconds
+setInterval(loadTrades, 35000);
+</script>
+</body>
+</html>
