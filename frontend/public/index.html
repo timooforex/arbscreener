@@ -429,7 +429,6 @@ nav{
     <div class="admin-tabs">
       <button class="admin-tab active" onclick="adminTab('exchanges')">Exchanges</button>
       <button class="admin-tab" onclick="adminTab('trades')">Trades</button>
-      <button class="admin-tab" onclick="adminTab('users')">Users</button>
       <button class="admin-tab" onclick="adminTab('settings')">Settings</button>
     </div>
     <div class="admin-body">
@@ -480,12 +479,6 @@ nav{
           </div>
           <div id="trade-list"></div>
         </div>
-      </div>
-
-      <!-- USERS -->
-      <div class="admin-section" id="tab-users">
-        <div class="section-title">User Management</div>
-        <div id="users-list"><div class="loading">Loading...</div></div>
       </div>
 
       <!-- SETTINGS -->
@@ -1052,7 +1045,6 @@ function adminTab(tab) {
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
   event.target.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
-  if (tab==='users') loadAdminUsers();
   if (tab==='trades') loadAdminTrades();
 }
 
@@ -1161,47 +1153,6 @@ async function toggleTradeActive(id,val){
 async function deleteTrade(id){
   if(!confirm('Delete trade?'))return;
   try{await api(`/api/trades/${id}`,{method:'DELETE'});toast('Deleted');await loadAdminTrades();await loadTrades();}
-  catch(e){toast(e.message,'error');}
-}
-
-async function loadAdminUsers(){
-  try{
-    const data=await api('/api/admin/users');
-    document.getElementById('users-list').innerHTML=data.users.map(u=>`
-      <div class="admin-item">
-        <div class="admin-item-main">
-          <div class="admin-item-name">${u.email}
-            <span class="badge ${u.role==='admin'?'pro':u.plan==='pro'?'pro':u.plan==='starter'?'starter':'off'}">${u.role==='admin'?'ADMIN':u.plan.toUpperCase()}</span>
-            <span class="badge ${u.isActive?'on':'off'}">${u.isActive?'Active':'Banned'}</span>
-          </div>
-          <div class="admin-item-meta">${u.username||'—'} · Joined ${new Date(u.createdAt).toLocaleDateString()}
-            ${u.planExpiry?'· Expires '+new Date(u.planExpiry).toLocaleDateString():''}</div>
-        </div>
-        <div class="item-actions">
-          <select onchange="changeUserPlan('${u._id}',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:5px;font-size:11px;">
-            <option value="free" ${u.plan==='free'?'selected':''}>Free</option>
-            <option value="starter" ${u.plan==='starter'?'selected':''}>Starter</option>
-            <option value="pro" ${u.plan==='pro'?'selected':''}>Pro</option>
-          </select>
-          <button class="icon-btn" onclick="toggleUserActive('${u._id}',${!u.isActive})">${u.isActive?'Ban':'Unban'}</button>
-          <button class="icon-btn del" onclick="deleteUser('${u._id}')">Del</button>
-        </div>
-      </div>`).join('')||'<div class="empty-state">No users</div>';
-  }catch(e){toast(e.message,'error');}
-}
-async function changeUserPlan(id,plan){
-  const expiry=new Date(Date.now()+30*86400000);
-  try{await api(`/api/admin/users/${id}`,{method:'PUT',body:JSON.stringify({plan,planExpiry:expiry,role:plan==='pro'?'pro':plan==='starter'?'starter':'free'})});
-    toast('Plan updated');await loadAdminUsers();}
-  catch(e){toast(e.message,'error');}
-}
-async function toggleUserActive(id,val){
-  try{await api(`/api/admin/users/${id}`,{method:'PUT',body:JSON.stringify({isActive:val})});toast('Updated');await loadAdminUsers();}
-  catch(e){toast(e.message,'error');}
-}
-async function deleteUser(id){
-  if(!confirm('Delete user?'))return;
-  try{await api(`/api/admin/users/${id}`,{method:'DELETE'});toast('Deleted');await loadAdminUsers();}
   catch(e){toast(e.message,'error');}
 }
 

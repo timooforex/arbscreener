@@ -32,7 +32,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/trades',    require('./routes/trades'));
 app.use('/api/exchanges', require('./routes/exchanges'));
-app.use('/api/payments',  require('./routes/payments'));
 app.use('/api/admin',     require('./routes/admin'));
 
 // Public settings (branding, theme, social links — safe to expose)
@@ -68,24 +67,6 @@ app.get('/api/settings', async (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
-
-// One-time admin setup — delete this route after use
-app.get('/api/setup-admin-x9k2', async (req, res) => {
-  try {
-    const existing = await User.findOne({ email: process.env.ADMIN_EMAIL });
-    if (existing) return res.json({ message: 'Admin already exists' });
-    await User.create({
-      email: process.env.ADMIN_EMAIL,
-      password: 'Tomzgold@001',
-      role: 'admin',
-      plan: 'pro',
-      planActive: true
-    });
-    res.json({ message: 'Admin created! Visit your site and login.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // Serve frontend for all other routes (SPA)
 app.get('*', (req, res) => {

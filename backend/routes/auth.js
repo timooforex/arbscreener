@@ -7,38 +7,6 @@ function signToken(id) {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 }
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password, username } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
-
-    const exists = await User.findOne({ email: email.toLowerCase() });
-    if (exists) return res.status(400).json({ error: 'Email already registered' });
-
-    // Assign admin role if email matches env
-    const role = email.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase() ? 'admin' : 'free';
-
-    const user = await User.create({ email, password, username, role });
-
-    const token = signToken(user._id);
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        plan: user.plan,
-        planActive: user.isPlanActive(),
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
