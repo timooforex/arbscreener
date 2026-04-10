@@ -111,6 +111,7 @@ async function seedDefaults() {
   }
 
   // Default settings
+  await Settings.set('siteName', 'Dubai Arbitrage');
   await Settings.set('starterProfitRange', { min: 0, max: 10 });
   await Settings.set('marketCap', '$2.23T');
   await Settings.set('volume', '$72.3B');
